@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+
+  /* Parchment-and-verdigris palette — a quiet private archive, not a SaaS dashboard. */
+  --color-canvas: #f6f3ec; /* page background */
+  --color-surface: #fdfbf7; /* cards, panels, raised chrome */
+  --color-linen: #e6e1d3; /* hairline borders / dividers */
+  --color-linen-hover: #efeae0; /* resting hover tint */
+  --color-ink: #1c1a17; /* primary text */
+  --color-stone: #716c60; /* secondary / muted text */
+  --color-accent: #22463b; /* verdigris — the one working accent */
+  --color-accent-hover: #1a3730;
+  --color-accent-soft: #e4ebe6; /* tinted accent background, active states */
+  --color-brass: #ad8a52; /* rare premium highlight — never paired with accent on one element */
+
+  --shadow-soft:
+    0 1px 2px rgba(28, 26, 23, 0.04), 0 8px 24px -12px rgba(28, 26, 23, 0.12);
+  --shadow-lifted:
+    0 2px 4px rgba(28, 26, 23, 0.05), 0 16px 40px -16px rgba(28, 26, 23, 0.18);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Fullscreen video/image should fill the screen edge-to-edge. */
+video:fullscreen,
+img:fullscreen {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: black;
+}
+
+/* "Export PDF" in the Bills module is just window.print() — this hides everything in
+   the app except the BillPreview marked .print-area, so the browser's print/Save-as-PDF
+   dialog renders only the bill itself, full width, no app chrome. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+/* Books module export — each page in BookPrintPages gets its own PDF page when printed. */
+.book-print-page {
+  break-after: page;
+}
+.book-print-page:last-child {
+  break-after: auto;
+}
+
+/* PDFs module — minimal version of pdf.js's own textLayer stylesheet (not shipped by the
+   pdfjs-dist package, which only ships the renderer, not its viewer CSS). Positions each
+   text run pdfjsLib.TextLayer renders exactly over the glyphs already drawn on the page
+   canvas, invisibly, so the browser's native text selection (and so highlighting) works
+   against real PDF text instead of a freehand marker. */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  transform-origin: 0 0;
+}
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.pdf-text-layer ::selection {
+  background: rgba(34, 70, 59, 0.25);
+}

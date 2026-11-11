@@ -1,0 +1,22 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Build artifacts produced from originals in the same folder — regenerate
+# with `pnpm media:convert` rather than committing them.
+src/assets/videos/*/_converted/
+
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Backend's runtime data store — regenerated on first write. Holds real account/customer
+# data (including password hashes) and every uploaded file/photo once the app is used, so
+# none of it belongs in git: top.json (login accounts + customers), each customer's own
+# db.json + uploads/ under customers/<id>/, and customer-photos/.
+server/data/
