@@ -28,6 +28,7 @@ import { exportContentPdf } from "@/lib/api/chat";
 import { FolderGrid } from "@/components/FolderGrid";
 import { CategoryDetailView } from "@/components/CategoryDetailView";
 import { ChatView } from "@/components/ChatView";
+import { TeamsView } from "@/components/TeamsView";
 import { NotesView } from "@/components/NotesView";
 import { TextChatView } from "@/components/TextChatView";
 import { BillsView } from "@/components/BillsView";
@@ -531,6 +532,10 @@ export function Workspace({ customer, onLeaveCustomer, onLogout }: Props) {
                   />
                 </>
               )}
+            </main>
+          ) : module === "teams" ? (
+            <main className="relative flex-1 overflow-hidden bg-canvas">
+              <TeamsView />
             </main>
           ) : module === "chat" ? (
             <main className="relative flex-1 overflow-hidden bg-canvas">

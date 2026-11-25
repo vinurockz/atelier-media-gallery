@@ -403,3 +403,21 @@ A seventh sidebar module: `TasksView.tsx` (horizontally scrolling board), `TaskS
 - **Moves:** drag a card onto another column, or use the card's prev/next arrows or the section select in `TaskEditor`.
 - **Content:** a task's body is `blocks` (the Notes block model: rich text, image/video `MediaItem` ids from the library or uploaded into the "Task uploads" category, and http(s) links). The server drops any other block or link scheme. A fresh board is seeded once with "New tasks", "Completed" and "Pending" sections.
 - **Saves:** create/delete/move hit the server immediately; title/description/image edits update local state and save on a ~600ms per-task debounce (`flushTask` on editor close), like Notes.
+
+### Teams module
+
+A Microsoft Teams-style module: `TeamsView.tsx` (list + dialogs), `TeamsConversationPane.tsx`,
+`TeamsMessageItem.tsx`, `TeamsComposer.tsx`; state in `useTeams.ts`; types in `types/teams.ts`.
+
+- **Shared between accounts**, unlike every other module: it is not in a customer's store. The
+  backend is `server/teams.mjs` (mounted at `/api/teams-app`, no active customer needed), saved
+  in `server/data/teams.json` with files in `server/data/teams-files/`.
+- **Access is checked on every route** through `canAccess()`; people without access get 404.
+  Any new route or push must go through it, and needs a case in `server/teams.test.mjs`
+  (`pnpm test`).
+- People are added by exact email only, so accounts can't be listed.
+- **Live updates are Server-Sent Events** that only say what changed; the client refetches.
+  IIS needs ARR response buffering off (`scripts/setup-iis.ps1`).
+- Only known image/audio/video types are served inline; everything else downloads.
+- Not built yet: calls, screen sharing, typing indicator, reactions, search, notifications
+  outside the Teams screen.

@@ -44,6 +44,7 @@ const NAV_ENTRIES: (NavLeaf | NavGroup)[] = [
     id: "communicate",
     label: "Communicate",
     items: [
+      { id: "teams", label: "Teams", Icon: MessagesSquareIcon },
       { id: "chat", label: "Chat", Icon: ChatIcon },
       { id: "textChats", label: "Text Chat", Icon: MessagesSquareIcon },
     ],
@@ -364,6 +365,11 @@ export function Sidebar({
               </>
             )}
           </nav>
+        ) : module === "teams" ? (
+          <div className="flex-1 px-3 text-xs text-stone">
+            Chat one-to-one or in groups, and create teams with channels. Teams
+            are shared between accounts, whichever customer you are in.
+          </div>
         ) : module === "notes" ? (
           <div className="flex-1 px-3 text-xs text-stone">
             Sticky notes for text, images, and links. Use "New note" above the

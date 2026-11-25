@@ -2,6 +2,7 @@
 export type AppModule =
   | "files"
   | "chat"
+  | "teams"
   | "notes"
   | "textChats"
   | "bills"

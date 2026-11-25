@@ -24,6 +24,10 @@ Copy-Item (Join-Path $PSScriptRoot "..\web.config") $SiteDir -Force
 & $appcmd set config -section:system.webServer/proxy /enabled:"True" /commit:apphost
 if ($LASTEXITCODE -ne 0) { throw "Could not enable ARR proxy - is Application Request Routing installed?" }
 
+# Pass responses through as they arrive, so Teams' live updates aren't held back.
+& $appcmd set config -section:system.webServer/proxy /responseBufferLimit:"0" /commit:apphost
+if ($LASTEXITCODE -ne 0) { throw "Could not turn off ARR response buffering." }
+
 # Replace the site if it already exists, then create it.
 & $appcmd list site /name:$SiteName | Out-Null
 if ($LASTEXITCODE -eq 0) { & $appcmd delete site $SiteName | Out-Null }

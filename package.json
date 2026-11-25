@@ -13,6 +13,7 @@
     "media:convert": "node scripts/convert-videos.mjs",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
+    "test": "node --test server/teams.test.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {

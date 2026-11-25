@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DATA_DIR,
   customerPhotoPath,
   db,
   dbContext,
@@ -22,6 +23,7 @@ import {
   writeCustomerPhoto,
 } from "./db.mjs";
 import { buildChatPdf } from "./pdf.mjs";
+import { createTeamsRouter } from "./teams.mjs";
 import { currentUploadsDir, deleteUploadedFile } from "./mediaStorage.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -46,6 +48,8 @@ const COLOR_SWATCHES = [
 ];
 
 const app = express();
+// Behind IIS (same machine), take the visitor's address from X-Forwarded-For.
+app.set("trust proxy", "loopback");
 // Default 100kb is too tight for the API Tester module, which can echo back
 // whatever body/response size the request under test actually has.
 app.use(express.json({ limit: "10mb" }));
@@ -104,6 +108,8 @@ function createSession(userId) {
 const SESSION_COOKIE_OPTS = {
   httpOnly: true,
   sameSite: "lax",
+  // Set SECURE_COOKIES=1 when the site is served over HTTPS (required on the internet).
+  secure: process.env.SECURE_COOKIES === "1",
   maxAge: SESSION_TTL_MS,
 };
 
@@ -143,6 +149,9 @@ const ACCOUNT_ONLY_PREFIXES = [
   "/auth/me",
   "/auth/logout",
   "/session/customer",
+  // Teams is shared between accounts, so it isn't inside any one customer — teams.mjs does
+  // its own per-user access checks.
+  "/teams-app",
 ];
 
 function resolveAuthAndCustomer(req, res, next) {
@@ -186,6 +195,11 @@ function resolveAuthAndCustomer(req, res, next) {
 }
 
 app.use("/api", resolveAuthAndCustomer);
+
+// Slows down password guessing: at most 10 failed sign-ins per address+email per 15 minutes.
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 10;
+const loginFailures = new Map();
 
 // --- Auth routes -------------------------------------------------------------------------
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -233,10 +247,25 @@ app.post("/api/auth/login", (req, res) => {
       : "";
   const password =
     typeof req.body?.password === "string" ? req.body.password : "";
+  // IIS/ARR appends the port to the forwarded address; drop it or every connection looks new.
+  const address = String(req.ip).replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, "$1");
+  const attemptKey = `${address}|${email}`;
+  let attempts = loginFailures.get(attemptKey);
+  if (!attempts || attempts.resetAt <= Date.now()) {
+    attempts = { count: 0, resetAt: Date.now() + LOGIN_WINDOW_MS };
+  }
+  if (attempts.count >= LOGIN_MAX_FAILURES) {
+    return res
+      .status(429)
+      .json({ error: "Too many failed attempts. Try again in 15 minutes." });
+  }
   const user = topDb.authUsers.find((u) => u.email === email);
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
+    attempts.count += 1;
+    loginFailures.set(attemptKey, attempts);
     return res.status(401).json({ error: "Invalid email or password" });
   }
+  loginFailures.delete(attemptKey);
   const token = createSession(user.id);
   res.cookie(SESSION_COOKIE, token, SESSION_COOKIE_OPTS);
   res.json(toPublicUser(user, sessions.get(token)));
@@ -371,6 +400,18 @@ app.get("/api/auth/google/callback", async (req, res) => {
     res.status(502).send("Google sign-in failed — please try again.");
   }
 });
+
+// --- Teams module — see server/teams.mjs. ------------------------------------------------
+app.use(
+  "/api/teams-app",
+  createTeamsRouter({
+    dataDir: DATA_DIR,
+    listUsers: () => topDb.authUsers,
+    isSessionActive: (req) =>
+      [...sessions.values()].includes(req.session) &&
+      req.session.expiresAt > Date.now(),
+  }),
+);
 
 // --- Customers — see src/types/customer.ts. Owned by the signed-in user; each one's own
 // data (Files, Chat, Notes, every other module) lives in its own store (db.mjs's
@@ -1682,6 +1723,12 @@ app.all("/api/custom/:customerId/*", (req, res) => {
   if (!endpoint) {
     return res.status(404).json({ error: "no matching custom endpoint" });
   }
+  // Anyone can author one of these, including as HTML. "sandbox" stops its scripts from
+  // running as this site, where they could act as whoever opened the link.
+  res.set({
+    "Content-Security-Policy": "sandbox",
+    "X-Content-Type-Options": "nosniff",
+  });
   res.status(endpoint.statusCode).type(endpoint.contentType).send(endpoint.body);
 });
 

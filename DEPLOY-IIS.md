@@ -70,3 +70,19 @@ nssm restart AtelierApi
 - **HTTP 500.19 / 404 on everything**: URL Rewrite or ARR isn't installed, or proxy isn't enabled.
 - **502 Bad Gateway**: the Node service isn't running (`nssm status AtelierApi`).
 - **Upload fails with 404.13**: `web.config` upload limit missing; keep the `requestLimits` entry.
+- **Teams messages only appear after a long delay**: ARR is buffering. Run `scripts\setup-iis.ps1`
+  again, or as Administrator:
+  `appcmd set config -section:system.webServer/proxy /responseBufferLimit:"0" /commit:apphost`
+  (this is a server-wide ARR setting).
+
+## Before putting it on the internet
+
+**Do not expose the site publicly yet.** Check each of these first:
+
+1. **HTTPS only**, with a real certificate, and set the env var `SECURE_COOKIES=1` for Node.
+2. **Block port 4000** from outside; only IIS should be reachable.
+3. **Registration is open**: anyone who finds the site can create an account.
+4. **API Tester** (`POST /api/api-tester/send`) lets any signed-in user make the server request
+   any address, including machines on your private network. Restrict or disable it first.
+5. **Back up `server/data/`.** It holds accounts, messages and uploaded files.
+6. There is no password reset, email verification, or storage limit per account.

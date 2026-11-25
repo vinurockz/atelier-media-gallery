@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(ROOT, "data");
+export const DATA_DIR = join(ROOT, "data");
 const CUSTOMERS_DIR = join(DATA_DIR, "customers");
 const TOP_DB_FILE = join(DATA_DIR, "top.json");
 const CUSTOMER_PHOTOS_DIR = join(DATA_DIR, "customer-photos");
